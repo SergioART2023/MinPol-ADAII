@@ -1,80 +1,76 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Proyecto 2 - ADA II
-% Problema MinPol
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PARÁMETROS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Número de personas
 int: n;
-
-% Número de opiniones
 int: m;
+set of int: OP = 1..m;
+int: half = n div 2;
 
-% Conjunto de opiniones
-set of int: OPINIONES = 1..m;
-
-% Personas inicialmente en cada opinión
-array[OPINIONES] of int: p;
-
-% Valor de cada opinión
-array[OPINIONES] of float: v;
-
-% Costo extra
-array[OPINIONES] of float: ce;
-
-% Costos de mover una persona entre opiniones
-array[OPINIONES, OPINIONES] of float: c;
-
-% Costo máximo permitido
+array[OP] of int: p;
+array[OP] of float: v;
+array[OP] of float: ce;
+array[OP, OP] of float: c;
 float: ct;
-
-% Número máximo de movimientos
 int: maxM;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% VARIABLES DE DECISIÓN
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+array[OP, OP] of var 0..n: x;
+array[OP] of var 0..n: y;
+array[OP] of var 0..1: z;
+array[OP, OP] of var 0..n: u;
 
-% x[i,j] = personas que se mueven de la opinión i a la opinión j
-array[OPINIONES, OPINIONES] of var 0..n: x;
-
-% Personas finales en cada opinión
-array[OPINIONES] of var 0..n: pf;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% RESTRICCIONES
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-constraint
-forall(i in OPINIONES)(
-    sum(j in OPINIONES)(x[i,j]) <= p[i]
+array[OP, OP] of float: unit_cost = array2d(
+  OP,
+  OP,
+  [
+    if i = j then 0.0
+    else
+      c[i, j] * (1.0 + int2float(p[i]) / int2float(n)) +
+      (if p[j] = 0 then ce[j] else 0.0 endif)
+    endif
+    | i in OP, j in OP
+  ]
 );
 
-constraint
-forall(i in OPINIONES)(
-    x[i,i] = 0
+array[OP, OP] of int: unit_movements = array2d(
+  OP,
+  OP,
+  [abs(i - j) | i in OP, j in OP]
 );
 
-constraint
-forall(i in OPINIONES)(
-    pf[i] =
-    p[i]
-    + sum(j in OPINIONES where j != i)(x[j,i])
-    - sum(j in OPINIONES where j != i)(x[i,j])
+array[OP, OP] of float: deviation = array2d(
+  OP,
+  OP,
+  [abs(v[j] - v[k]) | k in OP, j in OP]
 );
 
-constraint
-    sum(i in OPINIONES, j in OPINIONES)(
-        abs(i-j) * x[i,j]
-    ) <= maxM;
+constraint forall(i in OP)(sum(j in OP)(x[i, j]) = p[i]);
+constraint forall(j in OP)(y[j] = sum(i in OP)(x[i, j]));
+constraint sum(k in OP)(z[k]) = 1;
 
-constraint
-    sum(i in OPINIONES, j in OPINIONES)(
-        (
-            c[i,j] * (1.0 + int2float(p[i]) / int2float(n))
-            + (if p[j] == 0 then ce[j] else 0.0 endif)
-        ) * x[i,j]
-    ) <= ct;
+constraint forall(k in OP)(
+  sum(j in 1..k - 1)(y[j]) <= half + n * (1 - z[k]) /\
+  sum(j in k + 1..m)(y[j]) <= half + n * (1 - z[k])
+);
+
+constraint forall(j in OP)(sum(k in OP)(u[k, j]) = y[j]);
+constraint forall(k in OP, j in OP)(
+  u[k, j] <= y[j] /\
+  u[k, j] <= n * z[k] /\
+  u[k, j] >= y[j] - n * (1 - z[k])
+);
+
+var float: total_cost = sum(i in OP, j in OP)(unit_cost[i, j] * int2float(x[i, j]));
+var int: total_movements = sum(i in OP, j in OP)(unit_movements[i, j] * x[i, j]);
+var float: total_polarization = sum(k in OP, j in OP)(deviation[k, j] * int2float(u[k, j]));
+var int: median_index = sum(k in OP)(k * z[k]);
+
+constraint total_cost <= ct;
+constraint total_movements <= maxM;
+
+solve minimize total_polarization;
+
+output [
+  "polarizacion=" ++ show(total_polarization) ++ "\n" ++
+  "costo_total=" ++ show(total_cost) ++ "\n" ++
+  "movimientos_totales=" ++ show(total_movements) ++ "\n" ++
+  "indice_mediana=" ++ show(median_index) ++ "\n" ++
+  "distribucion_final=" ++ show([y[j] | j in OP]) ++ "\n" ++
+  concat(["fila_" ++ show(i) ++ "=" ++ show([x[i, j] | j in OP]) ++ "\n" | i in OP])
+];
