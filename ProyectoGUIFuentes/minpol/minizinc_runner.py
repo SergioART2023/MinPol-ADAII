@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -34,10 +35,29 @@ def _parse_output(raw_output: str) -> Solution:
     )
 
 
-def run_minizinc_model(model_path: str | Path, data_path: str | Path) -> Solution:
+def _resolve_minizinc_executable() -> str:
     executable = shutil.which("minizinc")
-    if executable is None:
-        raise FileNotFoundError("No se encontro el ejecutable de MiniZinc en el PATH")
+    if executable:
+        return executable
+
+    candidates: list[Path] = []
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        candidates.append(Path(local_app_data) / "Programs" / "MiniZinc" / "minizinc.exe")
+    candidates.append(Path("C:/Program Files/MiniZinc/minizinc.exe"))
+    candidates.append(Path("C:/Program Files (x86)/MiniZinc/minizinc.exe"))
+
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+
+    raise FileNotFoundError(
+        "No se encontro el ejecutable de MiniZinc. Instale MiniZinc o agregue minizinc.exe al PATH."
+    )
+
+
+def run_minizinc_model(model_path: str | Path, data_path: str | Path) -> Solution:
+    executable = _resolve_minizinc_executable()
 
     process = subprocess.run(
         [executable, str(model_path), str(data_path)],

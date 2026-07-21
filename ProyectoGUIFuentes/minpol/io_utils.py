@@ -48,9 +48,10 @@ def parse_mpl_file(file_path: str | Path) -> ProblemInstance:
 
 def write_dzn_file(instance: ProblemInstance, file_path: str | Path) -> Path:
     target_path = Path(file_path)
-    move_rows = " |\n     | ".join(
-        ", ".join(f"{value:g}" for value in row)
+    flat_costs = ", ".join(
+        f"{value:g}"
         for row in instance.move_costs
+        for value in row
     )
     content = "\n".join(
         [
@@ -59,7 +60,7 @@ def write_dzn_file(instance: ProblemInstance, file_path: str | Path) -> Path:
             "p = [" + ", ".join(str(value) for value in instance.initial_distribution) + "];",
             "v = [" + ", ".join(f"{value:g}" for value in instance.opinion_values) + "];",
             "ce = [" + ", ".join(f"{value:g}" for value in instance.extra_costs) + "];",
-            "c = [| " + move_rows + " |];",
+            "c = array2d(1..m, 1..m, [" + flat_costs + "]);",
             f"ct = {instance.max_total_cost:g};",
             f"maxM = {instance.max_movements};",
             "",

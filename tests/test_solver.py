@@ -28,7 +28,7 @@ class SolverTests(unittest.TestCase):
         write_dzn_file(instance, output_path)
         content = output_path.read_text(encoding="utf-8")
 
-        self.assertIn("c = [|", content)
+        self.assertIn("c = array2d(1..m, 1..m, [", content)
         self.assertIn("maxM = 18;", content)
 
     def test_expected_outputs_match_solver(self) -> None:
