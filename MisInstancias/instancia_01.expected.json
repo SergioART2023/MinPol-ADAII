@@ -1,0 +1,41 @@
+{
+  "instance": "instancia_01.mpl",
+  "polarization": 0.6,
+  "total_cost": 6.0,
+  "total_movements": 4,
+  "median_index": 2,
+  "final_distribution": [
+    0,
+    6,
+    2,
+    0
+  ],
+  "transfers": [
+    [
+      0,
+      4,
+      0,
+      0
+    ],
+    [
+      0,
+      2,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      2,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "method": "programacion_dinamica_exacta",
+  "time_ms": 0.3152999997837469
+}
